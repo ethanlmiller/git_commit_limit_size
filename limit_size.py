@@ -131,16 +131,36 @@ def get_refs (fh):
 
 def get_int (s):
     '''
-    Return an integer value, multiplied by a suffix of K, M, or G.  If there's
+    Return an integer value, multiplied by a suffix of Ki, Mi, Gi, K, M, or G.  If there's
     an error in conversion, return 1.  Don't return 0, since that means no limit.
     '''
-    if s[-1].upper() == 'K':
-        return int(s[:-1]) * 1024
-    elif s[-1].upper() == 'M':
-        return int(s[:-1]) * 1024 * 1024
-    elif s[-1].upper() == 'G':
-        return int(s[:-1]) * 1024 * 1024 * 1024
-    return int(s)
+    # If any substring stuff fails, it's because we might not have enough characters.
+    # In that case, we must have a plain integer.
+    try:
+        if s[-1] == 'B':
+            s = s[:-1]
+        if len(s) > 2:
+            suffix = s[-2:].upper ()
+            num = int (s[:-2])
+            if   suffix == 'KI':
+                return num * 1024
+            elif suffix == 'MI':
+                return num * 1024 * 1024
+            elif suffix == 'GI':
+                return num * 1024 * 1024 * 1024
+        if len(s) > 1:
+            suffix = s[-1:].upper ()
+            num = int (s[:-1])        
+            if suffix == 'K':
+                return num * 1000
+            elif suffix == 'M':
+                return num * 1000 * 1000
+            elif suffix == 'G':
+                return num * 1000 * 1000 * 1000
+        return int(s)
+    except:
+        logger.error ("Bad value in config file: {0}".format (s))
+        return 1
 
 def read_config (config_file_name, repo_name):
     limits = (max_file_size, max_repo_size, max_num_files)
@@ -190,7 +210,9 @@ if __name__ == '__main__':
     else:
         print ('SYSTEM ERROR: unable to get repo directory!')
         print ('SYSTEM ERROR: push not successful.  Please retry.')
-        logger.error (repo_name + ": Unable to get repo directory!")
+        logger.error ("Unable to get repo directory!")
+        for k in os.environ.keys():
+            logger.error ("{0}={1}".format (k, os.environ[k]))
         sys.exit (1)
 
     logger.info ('Checking {0}'.format (repo_name))
